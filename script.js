@@ -1,34 +1,20 @@
 const generalDocs = [
-  "FORMATO DE ALTA",
-  "SOLICITUD DE EMPLEO",
-  "COPIA DEL ACTA DE NACIMIENTO",
-  "NUMERO DE IMSS",
-  "CURP",
-  "COPIA DE COMPROBANTE DE ESTUDIOS",
-  "COPIA DE COMPROBANTE DE DOMICILIO",
-  "CREDENCIAL DE ELECTOR",
-  "GUIA DE ENTREVISTA",
-  "CARTA DE IDENTIDAD(SOLO MENORES)"
+  "FORMATO DE ALTA", "SOLICITUD DE EMPLEO", "COPIA DEL ACTA DE NACIMIENTO", "NUMERO DE IMSS", "CURP",
+  "COPIA DE COMPROBANTE DE ESTUDIOS", "COPIA DE COMPROBANTE DE DOMICILIO", "CREDENCIAL DE ELECTOR",
+  "GUIA DE ENTREVISTA", "CARTA DE IDENTIDAD(SOLO MENORES)"
 ];
 
 const empresaDocs = [
-  "PERMISO FIRMADO POR TUTOR",
-  "IDENTIFICACION OFICIAL TUTOR",
-  "CARTA RESPONSIVA",
-  "POLITICAS DE LA EMPRESA",
-  "POLITICAS DE PROPINA",
-  "CONVENIO DE MANIPULACIONES",
-  "CONVENIO DE CORREO ELECTRONICO",
-  "VALE DE UNIFORME",
-  "APERTURA DE CUENTAS",
-  "CONTRATO LABORAL",
-  "RESPONSIVA TARJETA DE NOMINA",
-  "CUENTA SANTANDER"
+  "PERMISO FIRMADO POR TUTOR", "IDENTIFICACION OFICIAL TUTOR", "CARTA RESPONSIVA", "POLITICAS DE LA EMPRESA",
+  "POLITICAS DE PROPINA", "CONVENIO DE MANIPULACIONES", "CONVENIO DE CORREO ELECTRONICO", "VALE DE UNIFORME",
+  "APERTURA DE CUENTAS", "CONTRATO LABORAL", "RESPONSIVA TARJETA DE NOMINA", "CUENTA SANTANDER"
 ];
 
-const CLIENT_ID = 'AIzaSyCO9kvFoQRjbIGMIsFczREAu5S7tFG5Uzw';
+const CLIENT_ID = 'TU_CLIENT_ID_DE_GOOGLE_AQUÍ';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 let authInstance;
+const images = {};
+let zipBlob = null;
 
 function renderList(docs, containerId) {
   const ul = document.getElementById(containerId);
@@ -47,13 +33,12 @@ function renderList(docs, containerId) {
 window.onload = () => {
   renderList(generalDocs, "doc-general");
   renderList(empresaDocs, "doc-empresa");
-  initGoogleAPI(); // Inicializar el API de Drive
+  initGoogleAPI();
 };
 
 async function openCamera(docName) {
   const video = document.getElementById("camera");
   const modal = document.getElementById("cameraModal");
-  const captureBtn = document.getElementById("captureBtn");
   const label = document.getElementById("docLabel");
   const canvas = document.getElementById("snapshotCanvas");
 
@@ -65,7 +50,12 @@ async function openCamera(docName) {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
     video.srcObject = stream;
 
-    captureBtn.onclick = () => {
+    const oldBtn = document.getElementById("captureBtn");
+    const newBtn = oldBtn.cloneNode(true);
+    newBtn.id = "captureBtn";
+    oldBtn.replaceWith(newBtn);
+
+    newBtn.onclick = () => {
       const context = canvas.getContext("2d");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -88,35 +78,18 @@ async function openCamera(docName) {
   }
 }
 
-document.getElementById("closeCamera").onclick = () => {
-  const video = document.getElementById("camera");
-  const modal = document.getElementById("cameraModal");
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(track => track.stop());
-    video.srcObject = null;
-  }
-  modal.hidden = true;
-  modal.style.display = "flex";
-};
+
 
 document.getElementById("minimizeCamera").onclick = () => {
   const modal = document.getElementById("cameraModal");
   modal.style.display = "none";
 };
 
-let zipBlob = null;
-
 document.getElementById("generateZip").onclick = async () => {
   const zipName = document.getElementById("zipName").value.trim();
-  if (!zipName) {
-    alert("Por favor ingresa un nombre para el archivo ZIP");
-    return;
-  }
+  if (!zipName) return alert("⚠️ Ingresa un nombre para el ZIP");
 
-  if (Object.keys(images).length === 0) {
-    alert("No hay imágenes escaneadas para generar el ZIP.");
-    return;
-  }
+  if (Object.keys(images).length === 0) return alert("⚠️ No hay imágenes para generar el ZIP.");
 
   const zip = new JSZip();
   for (const [docName, blob] of Object.entries(images)) {
@@ -127,35 +100,29 @@ document.getElementById("generateZip").onclick = async () => {
   const content = await zip.generateAsync({ type: "blob" });
   zipBlob = content;
 
-  const zipBlobURL = URL.createObjectURL(content);
-  document.zipBlobURL = zipBlobURL;
+  const blobURL = URL.createObjectURL(content);
+  document.zipBlobURL = blobURL;
 
   const a = document.createElement("a");
-  a.href = zipBlobURL;
+  a.href = blobURL;
   a.download = zipName + ".zip";
   a.click();
 
-  alert("✅ El archivo ZIP ha sido descargado. Puedes compartirlo por WhatsApp o correo.");
+  alert("✅ ZIP generado y descargado. Puedes compartirlo por WhatsApp o correo.");
 };
 
 document.getElementById("sendWhatsApp").onclick = async () => {
-  if (!zipBlob) {
-    alert("Primero genera el archivo ZIP.");
-    return;
-  }
+  if (!zipBlob) return alert("Genera el ZIP primero.");
   const zipName = document.getElementById("zipName").value.trim() || "documentos";
   const link = await uploadZipToDrive(zipBlob, zipName + '.zip');
   if (!link) return;
 
-  const msg = encodeURIComponent(`Aquí está tu ZIP de documentos: ${link}`);
+  const msg = encodeURIComponent(`📁 ZIP de documentos:\n${link}`);
   window.open(`https://wa.me/?text=${msg}`);
 };
 
 document.getElementById("sendEmail").onclick = async () => {
-  if (!zipBlob) {
-    alert("Primero genera el archivo ZIP.");
-    return;
-  }
+  if (!zipBlob) return alert("Genera el ZIP primero.");
   const zipName = document.getElementById("zipName").value.trim() || "documentos";
   const link = await uploadZipToDrive(zipBlob, zipName + '.zip');
   if (!link) return;
@@ -167,10 +134,7 @@ document.getElementById("sendEmail").onclick = async () => {
 
 function initGoogleAPI() {
   gapi.load('client:auth2', async () => {
-    await gapi.client.init({
-      clientId: CLIENT_ID,
-      scope: SCOPES
-    });
+    await gapi.client.init({ clientId: CLIENT_ID, scope: SCOPES });
     authInstance = gapi.auth2.getAuthInstance();
   });
 }
@@ -189,18 +153,21 @@ async function uploadZipToDrive(blob, filename) {
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     form.append('file', blob);
 
-    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-      method: 'POST',
-      headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
-      body: form
-    });
+    const response = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+      {
+        method: 'POST',
+        headers: new Headers({ Authorization: 'Bearer ' + accessToken }),
+        body: form
+      }
+    );
 
     const file = await response.json();
 
     await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + accessToken,
+        Authorization: 'Bearer ' + accessToken,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ role: 'reader', type: 'anyone' })
@@ -208,7 +175,7 @@ async function uploadZipToDrive(blob, filename) {
 
     return `https://drive.google.com/file/d/${file.id}/view?usp=sharing`;
   } catch (error) {
-    alert("❌ Error al subir a Google Drive: " + error.message);
+    alert("❌ Error subiendo a Google Drive: " + error.message);
     return null;
   }
 }
