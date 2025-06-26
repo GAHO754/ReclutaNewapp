@@ -1,13 +1,29 @@
 const generalDocs = [
-  "FORMATO DE ALTA", "SOLICITUD DE EMPLEO", "COPIA DEL ACTA DE NACIMIENTO", "NUMERO DE IMSS", "CURP",
-  "COPIA DE COMPROBANTE DE ESTUDIOS", "COPIA DE COMPROBANTE DE DOMICILIO", "CREDENCIAL DE ELECTOR",
-  "GUIA DE ENTREVISTA", "CARTA DE IDENTIDAD(SOLO MENORES)"
+  "Formato de alta",
+  "Solicitud de empleo",
+  "Copia del acta de nacimiento",
+  "Número de IMSS",
+  "CURP",
+  "Copia de comprobante de estudios",
+  "Copia de comprobante de domicilio",
+  "Credencial de elector",
+  "Guía de entrevista",
+  "Carta de identidad (solo menores)"
 ];
 
 const empresaDocs = [
-  "PERMISO FIRMADO POR TUTOR", "IDENTIFICACION OFICIAL TUTOR", "CARTA RESPONSIVA", "POLITICAS DE LA EMPRESA",
-  "POLITICAS DE PROPINA", "CONVENIO DE MANIPULACIONES", "CONVENIO DE CORREO ELECTRONICO", "VALE DE UNIFORME",
-  "APERTURA DE CUENTAS", "CONTRATO LABORAL", "RESPONSIVA TARJETA DE NOMINA", "CUENTA SANTANDER"
+  "Permiso firmado por tutor",
+  "Identificación oficial tutor",
+  "Carta responsiva",
+  "Políticas de la empresa",
+  "Políticas de propina",
+  "Convenio de manipulaciones",
+  "Convenio de correo electrónico",
+  "Vale de uniforme",
+  "Apertura de cuentas",
+  "Contrato laboral",
+  "Responsiva tarjeta de nómina",
+  "Cuenta Santander"
 ];
 
 const CLIENT_ID = 'TU_CLIENT_ID_DE_GOOGLE_AQUÍ';
