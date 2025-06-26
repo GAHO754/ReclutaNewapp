@@ -26,7 +26,9 @@ const empresaDocs = [
   "CUENTA SANTANDER"
 ];
 
-const images = {}; // Guardará nombre => blob
+const CLIENT_ID = 'AIzaSyCO9kvFoQRjbIGMIsFczREAu5S7tFG5Uzw';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+let authInstance;
 
 function renderList(docs, containerId) {
   const ul = document.getElementById(containerId);
@@ -45,6 +47,7 @@ function renderList(docs, containerId) {
 window.onload = () => {
   renderList(generalDocs, "doc-general");
   renderList(empresaDocs, "doc-empresa");
+  initGoogleAPI(); // Inicializar el API de Drive
 };
 
 async function openCamera(docName) {
@@ -56,7 +59,7 @@ async function openCamera(docName) {
 
   label.textContent = `📄 Escaneando: ${docName}`;
   modal.hidden = false;
-  modal.style.display = "flex"; // Restaurar si estaba minimizado
+  modal.style.display = "flex";
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -70,7 +73,6 @@ async function openCamera(docName) {
 
       canvas.toBlob(blob => {
         images[docName] = blob;
-
         const safeId = docName.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_");
         const statusSpan = document.getElementById(`status-${safeId}`);
         if (statusSpan) statusSpan.textContent = "✅";
@@ -89,12 +91,10 @@ async function openCamera(docName) {
 document.getElementById("closeCamera").onclick = () => {
   const video = document.getElementById("camera");
   const modal = document.getElementById("cameraModal");
-
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(track => track.stop());
     video.srcObject = null;
   }
-
   modal.hidden = true;
   modal.style.display = "flex";
 };
@@ -103,6 +103,8 @@ document.getElementById("minimizeCamera").onclick = () => {
   const modal = document.getElementById("cameraModal");
   modal.style.display = "none";
 };
+
+let zipBlob = null;
 
 document.getElementById("generateZip").onclick = async () => {
   const zipName = document.getElementById("zipName").value.trim();
@@ -123,9 +125,9 @@ document.getElementById("generateZip").onclick = async () => {
   }
 
   const content = await zip.generateAsync({ type: "blob" });
-  const zipBlobURL = URL.createObjectURL(content);
+  zipBlob = content;
 
-  document.zipBlob = content;
+  const zipBlobURL = URL.createObjectURL(content);
   document.zipBlobURL = zipBlobURL;
 
   const a = document.createElement("a");
@@ -133,26 +135,80 @@ document.getElementById("generateZip").onclick = async () => {
   a.download = zipName + ".zip";
   a.click();
 
-  alert("✅ El archivo ZIP ha sido descargado. Ahora puedes compartirlo por correo o WhatsApp.");
+  alert("✅ El archivo ZIP ha sido descargado. Puedes compartirlo por WhatsApp o correo.");
 };
 
-document.getElementById("sendWhatsApp").onclick = () => {
-  if (!document.zipBlobURL) {
+document.getElementById("sendWhatsApp").onclick = async () => {
+  if (!zipBlob) {
     alert("Primero genera el archivo ZIP.");
     return;
   }
+  const zipName = document.getElementById("zipName").value.trim() || "documentos";
+  const link = await uploadZipToDrive(zipBlob, zipName + '.zip');
+  if (!link) return;
 
-  const msg = encodeURIComponent("Aquí está el ZIP de documentos generado.");
+  const msg = encodeURIComponent(`Aquí está tu ZIP de documentos: ${link}`);
   window.open(`https://wa.me/?text=${msg}`);
 };
 
-document.getElementById("sendEmail").onclick = () => {
-  if (!document.zipBlobURL) {
+document.getElementById("sendEmail").onclick = async () => {
+  if (!zipBlob) {
     alert("Primero genera el archivo ZIP.");
     return;
   }
+  const zipName = document.getElementById("zipName").value.trim() || "documentos";
+  const link = await uploadZipToDrive(zipBlob, zipName + '.zip');
+  if (!link) return;
 
-  const subject = encodeURIComponent("Documentos escaneados");
-  const body = encodeURIComponent("Adjunta el archivo ZIP descargado anteriormente para enviar por correo.");
+  const subject = encodeURIComponent("📁 Documentos escaneados");
+  const body = encodeURIComponent(`Hola,\n\nAquí tienes el ZIP:\n${link}`);
   window.location.href = `mailto:?subject=${subject}&body=${body}`;
 };
+
+function initGoogleAPI() {
+  gapi.load('client:auth2', async () => {
+    await gapi.client.init({
+      clientId: CLIENT_ID,
+      scope: SCOPES
+    });
+    authInstance = gapi.auth2.getAuthInstance();
+  });
+}
+
+async function uploadZipToDrive(blob, filename) {
+  try {
+    await authInstance.signIn();
+    const accessToken = gapi.auth.getToken().access_token;
+
+    const metadata = {
+      name: filename,
+      mimeType: 'application/zip'
+    };
+
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', blob);
+
+    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST',
+      headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
+      body: form
+    });
+
+    const file = await response.json();
+
+    await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+
+    return `https://drive.google.com/file/d/${file.id}/view?usp=sharing`;
+  } catch (error) {
+    alert("❌ Error al subir a Google Drive: " + error.message);
+    return null;
+  }
+}
