@@ -81,18 +81,7 @@ button:hover {
   margin-top: 1rem;
   background: #28a745;
 }
-.close-btn {
-  margin-top: 0.5rem;
-  background-color: #e53e3e;
-  color: white;
-  border: none;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.close-btn:hover {
-  background-color: #c53030;
-}
+
 .doc-label {
   flex: 1;
 }
