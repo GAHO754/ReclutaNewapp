@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Escaneo de Documentos</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>📄 Escaneo de Documentación</h1>
+
+    <section>
+      <h2>🗂 DOCUMENTACIÓN GENERAL</h2>
+      <ul id="doc-general">
+        <!-- Ítems generados dinámicamente -->
+      </ul>
+    </section>
+
+    <section>
+      <h2>🏢 DOCUMENTACIÓN DE LA EMPRESA</h2>
+      <ul id="doc-empresa">
+        <!-- Ítems generados dinámicamente -->
+      </ul>
+    </section>
+
+    <div class="zip-controls">
+      <input type="text" id="zipName" placeholder="Nombre del archivo ZIP" />
+      <button id="generateZip">📦 Generar ZIP</button>
+      <button id="sendWhatsApp">💬 Compartir por WhatsApp</button>
+      <button id="sendEmail">📧 Enviar por Correo</button>
+    </div>
+  </div>
+
+  <!-- 📷 Modal de Cámara -->
+  <div class="camera-modal" id="cameraModal" hidden>
+    <h3 id="docLabel">Escanear documento</h3>
+    <video id="camera" autoplay playsinline></video>
+    <button id="captureBtn">📸 Tomar Foto</button>
+    <button id="closeCamera" class="close-btn">❌ Cerrar</button>
+    <button id="minimizeCamera" class="min-btn">🔽 Minimizar</button>
+    <canvas id="snapshotCanvas" hidden></canvas>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
