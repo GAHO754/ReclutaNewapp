@@ -26,7 +26,7 @@ const empresaDocs = [
   "Cuenta Santander"
 ];
 
-const CLIENT_ID = 'TU_CLIENT_ID_DE_GOOGLE_AQUÍ';
+const CLIENT_ID = '447789838113-076qo17ps0bercefg0ln9kiokt9bodtv.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 let authInstance;
 const images = {};
