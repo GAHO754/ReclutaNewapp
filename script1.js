@@ -127,13 +127,13 @@ document.getElementById("generateZip").onclick = async () => {
   alert("✅ ZIP generado y descargado. Puedes compartirlo por WhatsApp o correo.");
 };
 
-document.getElementById("sendWhatsApp").onclick = async () => {
-  if (!zipBlob) return alert("Genera el ZIP primero.");
-  const zipName = document.getElementById("zipName").value.trim() || "documentos";
-  const link = await uploadZipToDrive(zipBlob, zipName + '.zip');
-  if (!link) return;
+document.getElementById("sendWhatsApp").onclick = () => {
+  if (!document.zipBlobURL) {
+    alert("Primero genera el archivo ZIP.");
+    return;
+  }
 
-  const msg = encodeURIComponent(`📁 ZIP de documentos:\n${link}`);
+  const msg = encodeURIComponent("Aquí está el ZIP de documentos generado.");
   window.open(`https://wa.me/?text=${msg}`);
 };
 
