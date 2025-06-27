@@ -137,3 +137,15 @@ button:hover {
   outline: none;
   border-color: #3182ce;
 }
+.zip-controls button {
+  margin-right: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #2b6cb0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.zip-controls button:hover {
+  background-color: #2c5282;
+}
