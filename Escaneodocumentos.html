@@ -7,9 +7,16 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  
   <div class="container">
     <h1>📄 Escaneo de Documentación</h1>
+    <div style="display: flex; justify-content: flex-end; margin: 1rem;">
+  <a href="dashboard.html">
+    <button class="back-btn">⬅️ Regresar</button>
+  </a>
+</div>
 
+</div>
     <section>
       <h2>🗂 DOCUMENTACIÓN GENERAL</h2>
       <ul id="doc-general">
@@ -32,6 +39,7 @@
     </div>
   </div>
 
+
   <!-- 📷 Modal de Cámara -->
   <div class="camera-modal" id="cameraModal" hidden>
     <h3 id="docLabel">Escanear documento</h3>
@@ -44,10 +52,12 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="script1.js"></script>
   <script src="https://apis.google.com/js/api.js"></script>
-   <!-- Firebase App (core) -->
+
+  <!-- Firebase App (core) -->
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <!-- Firebase Storage -->
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+
 
 </body>
 </html>
