@@ -1,29 +1,13 @@
 const generalDocs = [
-   "Formato de alta",
-  "Solicitud de empleo",
-  "Copia del acta de nacimiento",
-  "Número de IMSS",
-  "CURP",
-  "Copia de comprobante de estudios",
-  "Copia de comprobante de domicilio",
-  "Credencial de elector",
-  "Guía de entrevista",
-  "Carta de identidad (solo menores)"
+  "Formato de alta", "Solicitud de empleo", "Copia del acta de nacimiento", "Número de IMSS", "CURP",
+  "Copia de comprobante de estudios", "Copia de comprobante de domicilio", "Credencial de elector",
+  "Guía de entrevista", "Carta de identidad (solo menores)"
 ];
 
 const empresaDocs = [
-  "Permiso firmado por tutor",
-  "Identificación oficial tutor",
-  "Carta responsiva",
-  "Políticas de la empresa",
-  "Políticas de propina",
-  "Convenio de manipulaciones",
-  "Convenio de correo electrónico",
-  "Vale de uniforme",
-  "Apertura de cuentas",
-  "Contrato laboral",
-  "Responsiva tarjeta de nómina",
-  "Cuenta Santander"
+  "Permiso firmado por tutor", "Identificación oficial tutor", "Carta responsiva", "Políticas de la empresa",
+  "Políticas de propina", "Convenio de manipulaciones", "Convenio de correo electrónico", "Vale de uniforme",
+  "Apertura de cuentas", "Contrato laboral", "Responsiva tarjeta de nómina", "Cuenta Santander"
 ];
 
 const CLIENT_ID = '447789838113-076qo17ps0bercefg0ln9kiokt9bodtv.apps.googleusercontent.com';
@@ -52,6 +36,25 @@ window.onload = () => {
   initGoogleAPI();
 };
 
+function isImageBlurry(canvas, threshold = 20) {
+  const context = canvas.getContext("2d");
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const grayValues = [];
+
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const r = imageData.data[i];
+    const g = imageData.data[i + 1];
+    const b = imageData.data[i + 2];
+    const gray = (r + g + b) / 3;
+    grayValues.push(gray);
+  }
+
+  const avg = grayValues.reduce((a, b) => a + b, 0) / grayValues.length;
+  const variance = grayValues.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / grayValues.length;
+
+  return variance < threshold;
+}
+
 async function openCamera(docName) {
   const video = document.getElementById("camera");
   const modal = document.getElementById("cameraModal");
@@ -78,6 +81,11 @@ async function openCamera(docName) {
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(blob => {
+        if (isImageBlurry(canvas)) {
+          alert("⚠️ La imagen parece borrosa. Toma la foto nuevamente.");
+          return;
+        }
+
         images[docName] = blob;
         const safeId = docName.replace(/[^\w\s]/gi, '').replace(/\s+/g, "_");
         const statusSpan = document.getElementById(`status-${safeId}`);
@@ -93,8 +101,6 @@ async function openCamera(docName) {
     modal.hidden = true;
   }
 }
-
-
 
 document.getElementById("minimizeCamera").onclick = () => {
   const modal = document.getElementById("cameraModal");
@@ -121,19 +127,17 @@ document.getElementById("generateZip").onclick = async () => {
 
   const blobURL = URL.createObjectURL(content);
   document.zipBlobURL = blobURL;
-  document.generatedZipName = zipName; // Se guarda para usar después
+  document.generatedZipName = zipName;
 
   const a = document.createElement("a");
   a.href = blobURL;
   a.download = zipName + ".zip";
   a.click();
 
-  alert("✅ ZIP generado y descargado. Puedes compartirlo por WhatsApp o correo.");
+  alert("✅ ZIP generado y descargado. Puedes compartirlo por WhatsApp, correo o Drive.");
 };
 
-///ENVIAR POR WHATSAPP
-// Compartir por WhatsApp
- document.getElementById("btnWhatsApp").onclick = async () => {
+document.getElementById("btnWhatsApp").onclick = async () => {
   if (!zipBlob) return alert("Primero genera el ZIP.");
 
   const baseName = document.getElementById("zipName").value.trim() || "documentos";
@@ -159,15 +163,12 @@ document.getElementById("generateZip").onclick = async () => {
   }
 };
 
-
-///ENVIAR POR CORREO ELECTRONICO 
 document.getElementById("sendEmail").onclick = async () => {
   if (!zipBlob) {
     alert("Primero genera el ZIP.");
     return;
   }
 
-  // Usamos el mismo nombre ya generado, o regeneramos con fecha si no existe
   const baseName = document.getElementById("zipName").value.trim() || "documentos";
   const fecha = new Date().toISOString().slice(0, 10);
   const zipName = `${baseName}_${fecha}`;
@@ -180,7 +181,28 @@ document.getElementById("sendEmail").onclick = async () => {
   window.location.href = `mailto:?subject=${subject}&body=${body}`;
 };
 
-///por driver
+document.getElementById("shareDrive").onclick = async () => {
+  if (!zipBlob) {
+    alert("Primero genera el ZIP.");
+    return;
+  }
+
+  const baseName = document.getElementById("zipName").value.trim() || "documentos";
+  const fecha = new Date().toISOString().slice(0, 10);
+  const zipName = `${baseName}_${fecha}.zip`;
+
+  const link = await uploadZipToDrive(zipBlob, zipName);
+  if (!link) return;
+
+  alert(`✅ Archivo subido a Google Drive:\n${link}`);
+};
+
+function initGoogleAPI() {
+  gapi.load('client:auth2', async () => {
+    await gapi.client.init({ clientId: CLIENT_ID, scope: SCOPES });
+    authInstance = gapi.auth2.getAuthInstance();
+  });
+}
 
 async function uploadZipToDrive(blob, filename) {
   try {
@@ -222,21 +244,3 @@ async function uploadZipToDrive(blob, filename) {
     return null;
   }
 }
-document.getElementById("shareDrive").onclick = async () => {
-  if (!zipBlob) {
-    alert("Primero genera el ZIP.");
-    return;
-  }
-
-  const baseName = document.getElementById("zipName").value.trim() || "documentos";
-  const fecha = new Date().toISOString().slice(0, 10);
-  const zipName = `${baseName}_${fecha}.zip`;
-
-  const link = await uploadZipToDrive(zipBlob, zipName);
-  if (!link) return;
-
-  // Mostrar enlace generado para copiar o reenviar
-  const mensaje = `✅ Archivo subido a Google Drive:\n${link}`;
-  alert(mensaje);
-};
-
