@@ -26,7 +26,7 @@ const empresaDocs = [
   "Cuenta Santander"
 ];
 
-const CLIENT_ID = 'TU_CLIENT_ID_DE_GOOGLE_AQUÍ';
+const CLIENT_ID = '447789838113-076qo17ps0bercefg0ln9kiokt9bodtv.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 let authInstance;
 const images = {};
@@ -133,26 +133,32 @@ document.getElementById("generateZip").onclick = async () => {
 
 ///ENVIAR POR WHATSAPP
 // Compartir por WhatsApp
-  document.getElementById("btnWhatsApp").onclick = async () => {
-    if (!zipBlob) return alert("Primero genera el ZIP.");
+ document.getElementById("btnWhatsApp").onclick = async () => {
+  if (!zipBlob) return alert("Primero genera el ZIP.");
 
-    try {
-      const file = new File([zipBlob], nombreZip, { type: "application/zip" });
-      const storageRef = ref(storage, `zips/${nombreZip}`);
-      await uploadBytes(storageRef, file);
+  const baseName = document.getElementById("zipName").value.trim() || "documentos";
+  const fecha = new Date().toISOString().slice(0, 10);
+  const nombreZip = `${baseName}_${fecha}.zip`;
+  const nombreTrabajador = prompt("Nombre del trabajador:");
 
-      const downloadURL = await getDownloadURL(storageRef);
+  try {
+    const file = new File([zipBlob], nombreZip, { type: "application/zip" });
+    const storageRef = ref(storage, `zips/${nombreZip}`);
+    await uploadBytes(storageRef, file);
 
-      const mensaje = encodeURIComponent(
-        `Hola, aquí tienes el ZIP con documentos del trabajador ${nombreTrabajador}:\n${downloadURL}`
-      );
+    const downloadURL = await getDownloadURL(storageRef);
 
-      window.open(`https://wa.me/?text=${mensaje}`, "_blank");
-    } catch (error) {
-      console.error("❌ Error al subir el archivo a Firebase:", error);
-      alert("❌ No se pudo subir ni generar el enlace de descarga.");
-    }
-  };
+    const mensaje = encodeURIComponent(
+      `Hola, aquí tienes el ZIP con documentos del trabajador ${nombreTrabajador || ""}:\n${downloadURL}`
+    );
+
+    window.open(`https://wa.me/?text=${mensaje}`, "_blank");
+  } catch (error) {
+    console.error("❌ Error al subir el archivo a Firebase:", error);
+    alert("❌ No se pudo subir ni generar el enlace de descarga.");
+  }
+};
+
 
 ///ENVIAR POR CORREO ELECTRONICO 
 document.getElementById("sendEmail").onclick = async () => {
@@ -216,3 +222,21 @@ async function uploadZipToDrive(blob, filename) {
     return null;
   }
 }
+document.getElementById("shareDrive").onclick = async () => {
+  if (!zipBlob) {
+    alert("Primero genera el ZIP.");
+    return;
+  }
+
+  const baseName = document.getElementById("zipName").value.trim() || "documentos";
+  const fecha = new Date().toISOString().slice(0, 10);
+  const zipName = `${baseName}_${fecha}.zip`;
+
+  const link = await uploadZipToDrive(zipBlob, zipName);
+  if (!link) return;
+
+  // Mostrar enlace generado para copiar o reenviar
+  const mensaje = `✅ Archivo subido a Google Drive:\n${link}`;
+  alert(mensaje);
+};
+
