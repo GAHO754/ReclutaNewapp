@@ -331,7 +331,6 @@ function openCrop(docName) {
     };
 }
 
-
 function confirmCrop() {
     if (!cropper) {
         alert("Cropper no está activo.");
@@ -339,29 +338,27 @@ function confirmCrop() {
     }
 
     const canvas = cropper.getCroppedCanvas();
+
     if (!canvas) {
         alert("No se pudo obtener el área recortada.");
         return;
     }
 
-   // Calidad JPEG al confirmar recorte manual con redimensionamiento:
-let finalCanvas = canvas;
+    // ✅ Guardar imagen recortada con calidad máxima (sin redimensionar)
+    const croppedDataUrl = canvas.toDataURL("image/jpeg", 1.0);
+    
+    // ✅ Guardar en el objeto global
+    scannedImages[currentDocForCrop] = croppedDataUrl;
 
-if (currentDocForCrop !== "Contrato laboral") {
-    finalCanvas = resizeCanvas(canvas, 900, 1200);
+    // ✅ Mostrar la vista previa recortada
+    document.getElementById(`preview-${currentDocForCrop}`).src = croppedDataUrl;
+    document.getElementById(`preview-${currentDocForCrop}`).style.display = 'block';
+    document.getElementById(`status-${currentDocForCrop}`).textContent = '🟩';
+
+    // ✅ Cerrar el modal de recorte
+    closeCrop();
 }
 
-const quality = currentDocForCrop === "Contrato laboral" ? 1.0 : 0.7; // Ajusta calidad aquí si quieres
-
-const croppedDataUrl = finalCanvas.toDataURL("image/jpeg", quality);
-
-scannedImages[currentDocForCrop] = croppedDataUrl;
-document.getElementById(`preview-${currentDocForCrop}`).src = croppedDataUrl;
-document.getElementById(`status-${currentDocForCrop}`).textContent = '🟩';
-closeCrop();
-
-
-}
 
 function closeCrop() {
     if (cropper) {
