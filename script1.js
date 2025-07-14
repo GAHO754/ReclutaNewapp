@@ -75,47 +75,51 @@ window.onload = () => {
 function startLiveCamera(docName) {
     currentLiveDoc = docName;
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
-            liveStream = stream;
-            document.getElementById("live-video").srcObject = stream;
-            document.getElementById("live-camera-modal").style.display = "flex";
-        })
-        .catch((error) => {
-            console.error("Error accediendo a la cámara:", error);
-            alert("No se pudo acceder a la cámara de este dispositivo. Asegúrate de dar permisos.");
-        });
+    navigator.mediaDevices.getUserMedia({ 
+        video: { 
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+        }
+    })
+    .then((stream) => {
+        liveStream = stream;
+        document.getElementById("live-video").srcObject = stream;
+        document.getElementById("live-camera-modal").style.display = "flex";
+    })
+    .catch((error) => {
+        console.error("Error accediendo a la cámara:", error);
+        alert("No se pudo acceder a la cámara de este dispositivo. Asegúrate de dar permisos.");
+    });
 }
+
 
 //////////////////////////////////////////////////////////////////////////
 function takePhoto() {
     const video = document.getElementById("live-video");
     const canvas = document.createElement("canvas");
+    // Usa el tamaño real del video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // Dibuja la imagen completa
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    closeLiveCamera(); // Cierra la cámara inmediatamente
+    closeLiveCamera();
 
-    // Verifica si OpenCV está cargado
     if (!cv) {
-        alert("OpenCV.js no está cargado. No se puede realizar el recorte automático.");
-        
-        // ✅ Guarda la imagen original sin redimensionar y con calidad máxima
+        alert("OpenCV.js no está cargado.");
         const imageDataURL = canvas.toDataURL("image/jpeg", 1.0);
         scannedImages[currentLiveDoc] = imageDataURL;
-
         document.getElementById(`preview-${currentLiveDoc}`).src = imageDataURL;
         document.getElementById(`preview-${currentLiveDoc}`).style.display = 'block';
-        document.getElementById(`status-${currentLiveDoc}`).textContent = '⚠️'; // Indicador de que no se pudo procesar
+        document.getElementById(`status-${currentLiveDoc}`).textContent = '⚠️';
         return;
     }
 
-    // Si OpenCV está listo, llama al procesamiento automático
     processImageWithOpenCV(canvas, currentLiveDoc);
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 function closeLiveCamera() {
