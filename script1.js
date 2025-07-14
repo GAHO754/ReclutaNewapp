@@ -87,6 +87,7 @@ function startLiveCamera(docName) {
         });
 }
 
+//////////////////////////////////////////////////////////////////////////
 function takePhoto() {
     const video = document.getElementById("live-video");
     const canvas = document.createElement("canvas");
@@ -101,16 +102,10 @@ function takePhoto() {
     // Verifica si OpenCV está cargado
     if (!cv) {
         alert("OpenCV.js no está cargado. No se puede realizar el recorte automático.");
-        // Si OpenCV no está listo, guarda la imagen con calidad ajustada
-        // Calidad alta para "Contrato laboral", estándar para los demás
-        let finalCanvas = canvas;
-
-if (currentLiveDoc !== "Contrato laboral") {
-    finalCanvas = resizeCanvas(canvas, 900, 1200);
-}
-
-const imageDataURL = finalCanvas.toDataURL("image/jpeg", currentLiveDoc === "Contrato laboral" ? 1.0 : 0.7);
-scannedImages[currentLiveDoc] = imageDataURL;
+        
+        // ✅ Guarda la imagen original sin redimensionar y con calidad máxima
+        const imageDataURL = canvas.toDataURL("image/jpeg", 1.0);
+        scannedImages[currentLiveDoc] = imageDataURL;
 
         document.getElementById(`preview-${currentLiveDoc}`).src = imageDataURL;
         document.getElementById(`preview-${currentLiveDoc}`).style.display = 'block';
@@ -118,11 +113,11 @@ scannedImages[currentLiveDoc] = imageDataURL;
         return;
     }
 
-    // Llama a la función de procesamiento automático
+    // Si OpenCV está listo, llama al procesamiento automático
     processImageWithOpenCV(canvas, currentLiveDoc);
 }
 
-
+////////////////////////////////////////////////////////////////////////////////////////////////
 function closeLiveCamera() {
     document.getElementById("live-camera-modal").style.display = "none";
     if (liveStream) {
@@ -382,35 +377,14 @@ async function generateZip() {
     const fecha = getCurrentDateFormatted();
     const zip = new JSZip();
 
-    // Clona las imágenes para no modificar las originales
-    const imagesToCompress = Object.entries(scannedImages).map(([docName, imageData]) => ({ docName, imageData }));
+    Object.entries(scannedImages).forEach(([docName, imageData], index) => {
+        const base64 = imageData.split(",")[1]; // Extrae datos sin encabezado
+        zip.file(`${imss}_${fecha}_${index + 1}_${docName}.jpg`, base64, { base64: true });
+    });
 
-    // Define calidades posibles de mayor a menor
-    const qualityLevels = [0.9, 0.8, 0.75, 0.7, 0.65, 0.6];
+    const blob = await zip.generateAsync({ type: 'blob' });
 
-    let finalZipBlob = null;
-
-    for (let q of qualityLevels) {
-        zipFilesWithQuality(zip, imagesToCompress, q, imss, fecha);
-        const blob = await zip.generateAsync({ type: 'blob' });
-        const sizeMB = blob.size / (1024 * 1024);
-
-        console.log(`🧪 Probando calidad: ${q} ➜ ZIP = ${sizeMB.toFixed(2)} MB`);
-
-        if (sizeMB <= 4) {
-            finalZipBlob = blob;
-            break; // Salimos con la mejor calidad posible bajo 4MB
-        }
-
-        zip.files = {}; // Limpiar ZIP para siguiente intento
-    }
-
-    if (!finalZipBlob) {
-        alert("❌ No se pudo generar un ZIP debajo de 4MB, incluso con compresión máxima.");
-        return;
-    }
-
-    const url = URL.createObjectURL(finalZipBlob);
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `Documentos_${imss}_${fecha}.zip`;
@@ -419,6 +393,7 @@ async function generateZip() {
     link.remove();
     URL.revokeObjectURL(url);
 }
+
 
 
 //////////////////////////////////////////pdf////////////////////////////////////////////
@@ -431,43 +406,22 @@ async function generateOptimizedPDF() {
     }
 
     const fecha = getCurrentDateFormatted();
-    const qualityLevels = [1.0, 0.95, 0.9, 0.85, 0.8, 0.75]; // De mejor a menor calidad
-    let finalPdfBlob = null;
+    const pdf = new jsPDF();
 
-    for (let quality of qualityLevels) {
-        const pdf = new jsPDF();
-        const entries = Object.entries(scannedImages);
+    const entries = Object.entries(scannedImages);
+    for (let i = 0; i < entries.length; i++) {
+        const [docName, imageData] = entries[i];
 
-        for (let i = 0; i < entries.length; i++) {
-            const [docName, imageData] = entries[i];
+        const imgProps = pdf.getImageProperties(imageData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            // Comprimir la imagen si no es "Contrato laboral"
-            const finalDataUrl = await compressImage(imageData, docName === "Contrato laboral" ? 1.0 : quality);
-
-            const imgProps = pdf.getImageProperties(finalDataUrl);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-            if (i > 0) pdf.addPage();
-            pdf.addImage(finalDataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-        }
-
-        const blob = pdf.output('blob');
-        const sizeMB = blob.size / (1024 * 1024);
-        console.log(`🧪 Calidad ${quality} ➜ PDF: ${sizeMB.toFixed(2)} MB`);
-
-        if (sizeMB <= 4) {
-            finalPdfBlob = blob;
-            break;
-        }
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imageData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
     }
 
-    if (!finalPdfBlob) {
-        alert("❌ No se pudo generar un PDF debajo de 4MB, incluso con compresión máxima.");
-        return;
-    }
-
-    const url = URL.createObjectURL(finalPdfBlob);
+    const blob = pdf.output('blob');
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `${imss}_${fecha}_Documentos.pdf`;
@@ -477,20 +431,7 @@ async function generateOptimizedPDF() {
     URL.revokeObjectURL(url);
 }
 
-function resizeCanvas(originalCanvas, maxWidth, maxHeight) {
-    const ratio = Math.min(maxWidth / originalCanvas.width, maxHeight / originalCanvas.height);
-    const newWidth = originalCanvas.width * ratio;
-    const newHeight = originalCanvas.height * ratio;
 
-    const resizedCanvas = document.createElement('canvas');
-    resizedCanvas.width = newWidth;
-    resizedCanvas.height = newHeight;
-
-    const ctx = resizedCanvas.getContext('2d');
-    ctx.drawImage(originalCanvas, 0, 0, newWidth, newHeight);
-
-    return resizedCanvas;
-}
 
 
 ////////////////////////////////////////////////////////////////
@@ -538,38 +479,3 @@ setTimeout(() => {
         });
     };
 }, 50);
-function zipFilesWithQuality(zip, images, quality, imss, fecha) {
-    images.forEach(({ docName, imageData }, index) => {
-        // No modificar el "Contrato laboral", siempre calidad 1.0
-        const isContrato = docName === "Contrato laboral";
-        const img = new Image();
-        img.src = imageData;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        const finalQuality = isContrato ? 1.0 : quality;
-        const compressed = canvas.toDataURL("image/jpeg", finalQuality);
-        const base64 = compressed.split(",")[1];
-
-        zip.file(`${imss}_${fecha}_${index + 1}_${docName}.jpg`, base64, { base64: true });
-    });
-}
-function compressImage(dataURL, quality) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
-            resolve(compressedDataUrl);
-        };
-        img.src = dataURL;
-    });
-}
